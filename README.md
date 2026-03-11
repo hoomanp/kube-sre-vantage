@@ -36,6 +36,33 @@ A Python-based operator framework that translates AI insights into cluster actio
 
 ---
 
+## 🔍 How it Works: The SRE Vantage Loop
+
+Kube-SRE-Vantage follows a **closed-loop reliability cycle** powered by data and context:
+
+### 1. Ingestion (OpenTelemetry)
+The framework continuously ingests Service Level Indicators (SLIs) like success rates, error counts, and latency through standard **OpenTelemetry** protocols. This ensures that no matter where the service is running (EKS, AKS, GKE), the telemetry is normalized.
+
+### 2. Contextualization (RAG Agent)
+When the framework evaluates a service, it doesn't just look at the numbers. The **RAG (Retrieval-Augmented Generation) Agent** pulls context from a vector database (ChromaDB) containing:
+- **Historical Incidents:** Past post-mortems and root causes.
+- **SLA Documentation:** Specific contractual uptime commitments.
+- **Service Mesh Topography:** Knowledge of upstream/downstream dependencies.
+
+### 3. Analysis (SLO Engine)
+The **SLO Engine** takes the normalized SLIs from OTel, the service definitions from **OpenSLO**, and the retrieved context from the RAG Agent. It feeds this into an LLM (via LiteLLM) to perform an intelligent health check:
+- **Health Calculation:** Compares current SLIs against SLO targets.
+- **Burn Rate Prediction:** Estimates when an error budget or SLA will be breached based on current trends and historical context.
+- **Contextual Reasoning:** Explains *why* a service is at risk (e.g., "Latency is spiking similarly to Incident INC-102").
+
+### 4. Enforcement & Remediation
+Based on the high-confidence analysis, the framework can:
+- **Trigger Alerts:** Notify SRE channels with a human-readable summary.
+- **Block Deployments:** Enforce "Stop-Ship" signals if the error budget is exhausted.
+- **Auto-Remediate:** Trigger Kubernetes drains or restarts via the integrated controller.
+
+---
+
 ## 📂 Project Structure
 
 ```text
