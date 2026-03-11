@@ -1,0 +1,9 @@
+opentelemetry-api==1.22.0
+opentelemetry-sdk==1.22.0
+opentelemetry-exporter-otlp==1.22.0
+kubernetes==29.0.0
+kopf==1.36.2
+litellm==1.17.0
+fastapi==0.109.0
+uvicorn==0.27.0
+PyYAML==6.0.1
