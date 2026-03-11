@@ -1,0 +1,38 @@
+apiVersion: openslo/v1
+kind: SLO
+metadata:
+  name: api-availability-slo
+  service: payment-api
+spec:
+  description: "99.9% availability of the payment API per month"
+  indicator:
+    metricSource:
+      type: opentelemetry
+      name: http_requests_total
+    thresholdMetric:
+      value: 0.999
+  timeWindow:
+    - duration: 30d
+      isRolling: true
+  objectives:
+    - ratioMetrics:
+        good:
+          metricSource:
+            name: http_requests_total{status_code="200"}
+        total:
+          metricSource:
+            name: http_requests_total
+      target: 0.999
+      displayName: "Availability"
+---
+apiVersion: openslo/v1
+kind: SLA
+metadata:
+  name: customer-contract-sla
+  service: payment-api
+spec:
+  description: "Internal contract for enterprise customers"
+  sloRef: api-availability-slo
+  remediation:
+    type: automated_refund
+    trigger: "Availability < 99.5%"
