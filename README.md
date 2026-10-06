@@ -90,6 +90,26 @@ flowchart TD
 - **Just-In-Time (JIT) Privilege Brokering:** Remediation controllers do not possess static cluster-admin rights. Tokens are issued ephemerally for the exact duration of a remediation action (drain/restart) and revoked upon completion.
 - **Threat Model to SLI Correlation:** Distinguishes infrastructure degradation from active adversarial conditions (e.g., credential stuffing attacks vs. memory leaks).
 
+```mermaid
+sequenceDiagram
+    autonumber
+    participant Engine as SLO & RCA Engine
+    participant Sec as Security Vantage Agent
+    participant IAM as K8s OIDC / JIT Token Broker
+    participant Kopf as Kopf Operator (Remediator)
+    participant Cluster as Kubernetes API
+
+    Engine->>Sec: Request Remediation (Action: DRAIN, Target: node-pool-04)
+    Sec->>Sec: Validate Threat Model & Policy (No Active Compromise)
+    Sec->>IAM: Mint Ephemeral JIT Token (TTL: 120s, Scope: node-pool-04)
+    IAM-->>Sec: Return Signed Ephemeral Token
+    Sec->>Kopf: Dispatch Action with JIT Token
+    Kopf->>Cluster: Execute Graceful Pod Eviction (Scoped Grant)
+    Cluster-->>Kopf: Drain Complete
+    Kopf->>Sec: Report Completion
+    Sec->>IAM: Explicit Token Revocation & Audit Hash
+```
+
 ---
 
 ## 📋 OpenSLO Configuration Specification
@@ -152,6 +172,26 @@ kube-sre-vantage/
 │   └── __init__.py                # Kopf operator for automated cluster actions
 └── api/
     └── v1/                        # REST API for external SRE dashboards
+```
+
+---
+
+## 🚨 Automated Incident Diagnosis & RCA Preview
+
+```text
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔥 SRE INCIDENT RCA: payment-gateway-availability (CRITICAL)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+• Active SLI:          99.14% (Target: 99.90% | Burn Rate: 8.6x)
+• Time to Exhaustion:  3.4 days if unmitigated
+• Telemetry Root:      Downstream trace delta isolated to 'checkout-db' 
+                       replica #3 connection pool exhaustion (p99 latency 2,840ms).
+• Historical Match:    Correlated with INC-204 (vector similarity: 0.91).
+• Zero-Trust Action:   Security Agent verified no adversarial activity.
+                       Ephemeral JIT token minted (TTL: 60s) for Operator.
+• Remediation Status:  Kopf operator recycled pod 'checkout-db-replica-3'.
+                       Latency restored to nominal p99 180ms in 12 seconds.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ```
 
 ---
